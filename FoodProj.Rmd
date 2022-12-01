@@ -6,19 +6,44 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+https://www.kaggle.com/datasets/mariaren/covid19-healthy-diet-dataset?resource=download&select=Food_Supply_Quantity_kg_Data.csv
+ 
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7306972/ 
 
-## R Markdown
+https://www.hsph.harvard.edu/nutritionsource/nutrition-and-immunity/
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7919160/
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/people-with-medical-conditions.html 
 
-```{r cars}
+https://www.cdc.gov/healthyweight/index.html
+## Introduction
+
+When the novel coronavirus (COVID-19) pandemic spread through the world in late 2019 and 2020, it caused quarantines resulting in worldwide shutdowns of travel and commerce. Despite many limitations on travel, mask mandates, testing protocols, and social distancing requirements, the disease still caused shortages in hospital resources, including PPE, ventilators, and ICU beds. For example, the pandemic has caused up to 300,000 people in the US needing ICU beds simultaneously, while estimates for total ICU beds in the US are around 100,000. 
+
+The pervasiveness of the disease begs the question whether or not individual behaviors and life choices can decrease one's risk of either contracting or dying from the disease. Obesity, for example, is associated with higher rates of severe illness from COVID-19 (https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/people-with-medical-conditions.html). While obesity is influenced by genetic and environmental factors, it can be controlled by lifestyle choices such as exercise and healthy eating. 
+
+On the topic of healthy eating, Harvard T.H. Chan School of Public Health says that a "balanced diet consisting of a range of vitamins and minerals, combined with healthy lifestyle factors... most effectively primes the body to fight infection and disease." As a result, I am interested in whether or not dietary choices can effect rates of contracting COVID-19 or rates of serious illness/death.
+
+My data is called the COVID-19 Healthy Diet Dataset and comes from Kaggle courtesy of user Maria Ren, and was last updated the week of 02/06/2021, giving plenty of data from the COVID-19 pandemic to work with. There are 4 datasets provided, each of which contains information about a part of people's diet. One contains information about people's consumption of fat, another for protein, another for overall food intake (in kg), and another for overall food intake (in kcal). Each dataset has 170 rows (countries) and the same 32 columns. There is a column for country name and many different columns representing food groups that contain information about what percentage of people's diet (in the category defined by the dataset it comes from) that each food group takes up. For example, the animal fats column in the Fats dataset represents the percentage of a countries total fat intake that is comprised of animal fats. Meanwhile, the column animal fats in the Overall Food Intake (kg) dataset will represent the percentage of countries total food intake in kg that is comprised of animal fats. In addition, there are columns (I will refer to these following columns as demographic/outcome information) for obesity rate, undernourished rate, confirmed COVID-19 case rate, COVID-19 death rate, active COVID-19 case rate, and total population. All of the rates are calculated as percentage of total population, for example, confirmed COVID-19 case rate in a country is the percent of people in that country that have COVID-19. The demographic/outcome information is identical for all 4 datasets. 
+
+The 4 datasets were combined by joining them together on country (all the countries in the 4 sets are the same), and deleting the duplicate demographic/outcome information. 
+
+
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8954090/
+
+
+
+```{r}
 fat <- read.csv("Fat_Supply_Quantity_Data.csv")
 food_kg <- read.csv("Food_Supply_Quantity_kg_Data.csv")
 food_cal <- read.csv("Food_Supply_kcal_Data.csv")
 protein <- read.csv("Protein_Supply_Quantity_Data.csv")
-protein
+
+print(ncol(fat))
+print(ncol(food_kg))
+print(ncol(food_cal))
+print(ncol(protein))
 ```
 
 ```{r}
@@ -55,10 +80,29 @@ merged <- merge(merged, food_cal, by = "Country", all = TRUE)
 
 print(merged)
 
+merged <- merged %>% 
+  mutate(Animal_no_seafood_fat = Animal.Products_fat - Fish..Seafood_fat) %>% 
+  mutate(Vegetal_no_oil_fat = Vegetal.Products_fat - Vegetable.Oils_fat) %>% 
+  mutate(Animal_no_seafood_protein = Animal.Products_protein - Fish..Seafood_fat) %>% 
+  mutate(Vegetal_no_oil_protein = Vegetal.Products_protein - Vegetable.Oils_protein)
+  
+
+print(merged)
+  
+
 ```
 
 
 ```{r}
+ggplot(data = merged, aes(x = Animal.Products_fat, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="black", high="yellow") + labs()
 
+ggplot(data = merged, aes(x = Animal.fats, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="black", high="yellow") + labs()
+
+ggplot(data = merged, aes(x = Fruits...Excluding.Wine, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="black", high="yellow") + labs()
+```
+```{r}
+model <- lm(Deaths~Alcoholic.Beverages_fat + Animal_no_seafood_fat+ Fish..Seafood_fat + Vegetal_no_oil_fat + Vegetable.Oils_fat + Alcoholic.Beverages_protein + Animal_no_seafood_protein+ Fish..Seafood_protein + Vegetal_no_oil_protein + Vegetable.Oils_protein + Alcoholic.Beverages + Animal.fats  + Cereals...Excluding.Beer + Eggs + Fish..Seafood + Meat +  Fruits...Excluding.Wine + Milk...Excluding.Butter + Miscellaneous + Offals + Oilcrops + Pulses + Spices + Starchy.Roots + Stimulants + Sugar...Sweeteners + Treenuts + Vegetable.Oils + Vegetables + Population, data = merged)
+
+summary(model)
 ```
 

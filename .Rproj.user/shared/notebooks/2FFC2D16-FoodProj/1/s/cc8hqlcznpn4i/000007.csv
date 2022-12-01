@@ -1,5 +1,0 @@
-"0","fat <- read.csv(""Fat_Supply_Quantity_Data.csv"")"
-"0","food_kg <- read.csv(""Food_Supply_Quantity_kg_Data.csv"")"
-"0","food_cal <- read.csv(""Food_Supply_kcal_Data.csv"")"
-"0","protein <- read.csv(""Protein_Supply_Quantity_Data.csv"")"
-"0","protein"
