@@ -19,6 +19,7 @@ https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/people-with-med
 https://www.cdc.gov/healthyweight/index.html
 ```{r}
 library(tidyverse)
+library(betareg)
 ```
 
 ## Introduction
@@ -44,6 +45,14 @@ fat <- read.csv("Fat_Supply_Quantity_Data.csv")
 food_kg <- read.csv("Food_Supply_Quantity_kg_Data.csv")
 food_cal <- read.csv("Food_Supply_kcal_Data.csv")
 protein <- read.csv("Protein_Supply_Quantity_Data.csv")
+GDP <- read.csv("GDP_Per_Capita.csv")
+```
+```{r}
+GDP <- GDP %>% 
+  mutate(Country = ï..Country.Name) %>% 
+  mutate(GDP_per_cap = X2020) %>% 
+  select(Country, GDP_per_cap)
+GDP
 ```
 
 ```{r}
@@ -87,7 +96,7 @@ merged <- merged %>%
   mutate(Vegetal_no_oil_protein = Vegetal.Products_protein - Vegetable.Oils_protein)
 
 
-print(merged)
+print(merged$Undernourished)
 
 
 ```
@@ -104,21 +113,74 @@ ggplot(data = merged, aes(x = Fruits...Excluding.Wine, y = Deaths, color = Obesi
 
 ## Methodology
 
-### Missing Data
 ```{r}
 merged %>% 
   filter_all(any_vars(is.na(.))) %>% 
   select(Country, Obesity, Undernourished, Confirmed, Deaths, Recovered, Active)
+##Canada 45954
+##Chile 9622
+rownames(merged) <- merged$Country
+CanadaActive <- 45954/merged["Canada",]$Population
+ChileActive <- 9622/merged["Chile",]$Population
+print(CanadaActive)
+print(ChileActive)
+merged["Canada", "Active"]<- CanadaActive
+merged["Chile", "Active"] <- ChileActive
+
+merged %>% 
+  filter(Active==0|Confirmed==0|Deaths==0) %>% 
+  select(Country, Active, Confirmed, Deaths)
+
+
+merged <- merged %>% 
+  select(Country, Animal_no_seafood_fat, Fish..Seafood_fat, Vegetal_no_oil_fat, Vegetable.Oils_fat, Animal_no_seafood_protein, Fish..Seafood_protein, Vegetal_no_oil_protein, Vegetable.Oils_protein, Alcoholic.Beverages, Animal.fats, Cereals...Excluding.Beer, Eggs, Fish..Seafood, Meat,  Fruits...Excluding.Wine, Milk...Excluding.Butter, Miscellaneous, Offals, Oilcrops, Pulses, Spices, Starchy.Roots, Stimulants, Sugar...Sweeteners, Treenuts, Vegetable.Oils, Vegetables, Obesity, Deaths, Confirmed, Active, Population)
+
+merged_nas <- merged %>% 
+  filter_all(any_vars(is.na(.)))
+merged <- setdiff(merged, merged_nas)
+merged
 ```
-<!-- 16 of the 170 countries in the dataset contain missing values. All missing values occur in either the variables for rates of obesity, undernourishedness, confirmed cases, deaths, recovered cases, and active cases. Missing data in the confirmed cases, deaths, recovered cases, and active cases seem to be highly related. Other than two observations where only data for active cases is missing, a missing value in any of the four fields is always accompanied by missing values in all three other fields. Because these four fields are the main response variables I am interested in, I decided against imputing cases with all four response variables missing. Missing all four response variables leads to less information I could use to impute compared to if only one of the response variables was missing, and in addition the countries with all four response variables are generally either very small countries or weird cases such as North Korea. Due to these two facts, I thought it may be difficult to obtain accurate imputations in these cases and so I decided against imputation for these cases.  -->
+```{r}
+merged_final <- merge(merged, GDP, all.x=TRUE)
+merged_final %>% 
+  select(GDP_per_cap)
+rownames(merged_final) <- merged_final$Country
+
+merged_final["Bahamas", "GDP_per_cap"]<- 24665.10
+merged_final["Congo", "GDP_per_cap"]<- 543.95
+merged_final["Egypt", "GDP_per_cap"]<- 3569.21
+merged_final["Gambia", "GDP_per_cap"]<- 757.41
+merged_final["Iran (Islamic Republic of)", "GDP_per_cap"]<- 2756.75
+merged_final["Korea, South", "GDP_per_cap"]<- 31597.50
+merged_final["Kyrgyzstan", "GDP_per_cap"]<- 1182.52
+merged_final["Lao People's Democratic Republic", "GDP_per_cap"]<- 2551.33
+merged_final["Republic of Moldova", "GDP_per_cap"]<- 5314.53  
+merged_final["Saint Kitts and Nevis", "GDP_per_cap"]<-18230.13   
+merged_final["Saint Lucia", "GDP_per_cap"]<-9571.00
+merged_final["Saint Vincent and the Grenadines", "GDP_per_cap"]<-7996.61 
+merged_final["Slovakia", "GDP_per_cap"]<- 21087.85
+merged_final["Turkey", "GDP_per_cap"]<-9586.61   
+merged_final["United Republic of Tanzania", "GDP_per_cap"]<-1135.54   
+merged_final["United States of America", "GDP_per_cap"]<- 63027.68  
+merged_final["Venezuela (Bolivarian Republic of)", "GDP_per_cap"]<- 4500.00  
+merged_final["Yemen", "GDP_per_cap"] <- 690.76
+  
+  
+  
+merged_final %>% 
+  filter_all(any_vars(is.na(.))) %>% 
+  select(Country, GDP_per_cap)
+merged_final %>% 
+  select(GDP_per_cap)
+```
 
 
-16 of the 170 countries in the dataset contain missing values. All missing values occur in either the variables for rates of obesity, undernourishedness, confirmed cases, deaths, recovered cases, and active cases. Missing data in the confirmed cases, deaths, recovered cases, and active cases seem to be highly related. Other than two observations where only data for active cases is missing, a missing value in any of the four fields is always accompanied by missing values in all three other fields. Generally speaking, most countries with missing values are either countries with very small populations or are special cases such as Taiwan or North Korea. I assume this data is MAR since it seems like the missing values are mostly explained by something observed in the data (population). Unfortunately, MICE imputation does not work due to singular values occurring during imputation, even when experimenting with taking out certain problematic columns. As a result, I will drop these 16 observations with missing values, but will keep in mind that this will bias the results. 
+
 
 ```{r}
-library(mice)
-merged_test <- merged %>% 
-  select(-c(Alcoholic.Beverages_fat, Aquatic.Products..Other_fat, Sugar.Crops_fat, Sugar...Sweeteners_fat, Aquatic.Products..Other_food_kg, Sugar.Crops_food_kg, Aquatic.Products..Other_protein, Sugar.Crops_protein, Sugar...Sweeteners_protein, Aquatic.Products..Other, Sugar.Crops, Unit..all.except.Population., Obesity))
+# library(mice)
+# merged_test <- merged %>% 
+#   select(-c(Alcoholic.Beverages_fat, Aquatic.Products..Other_fat, Sugar.Crops_fat, Sugar...Sweeteners_fat, Aquatic.Products..Other_food_kg, Sugar.Crops_food_kg, Aquatic.Products..Other_protein, Sugar.Crops_protein, Sugar...Sweeteners_protein, Aquatic.Products..Other, Sugar.Crops, Unit..all.except.Population., Obesity))
 
 
 # 
@@ -133,13 +195,51 @@ I decided to concentrate on two response variables in particular, rates of COVID
 
 In addition, given that there was data available for the percentage of total protein and fats each of the food groups took up, I decided to also control for these. However, in the interest of being parsimonious, I used variables representing larger food groups to control for them. I added in variables for percentage of total fat intake from animal products (not including seafood), seafood, vegetal products (any plant related products not including oils), and vegetable oils. Similar variables were added to the model but instead of fat, they measured percentage of total protein intake. 
 
-Lastly, I also added in variables for obesity rate and population to control for these factors as well.  
+I also added in variables for obesity rate and population to control for these factors as well. I decided to not to include undernourished rate. This was because the data for undernourished rate was recorded in a strange way where anything under 2.5% was recorded in the same way. I did not see a principled way to create numerical values for this data, and using another source of data was not feasible because I was not sure exactly where and how the undernourished rate was defined in the original data set. As a result, I decided to omit the undernourished rate from the model. Lastly, from a quick initial survey, it seems that how affluent a country is may effect COVID-19 case rates, deaths, etc. As a result, I downloaded the 2020 GDP per capita for all countries, and merged it into my dataset using the country name. I went through and cleaned it up and hand inputted a few data points due to certain countries being named slightly differently. 
+
+### Missing Data
 
 
+After subsetting the data for only predictors we are interested in, 7 of the 170 countries in the dataset contain missing values. All missing values occur in either the variables for rates of obesity,  confirmed cases and deaths. Missing data for a country in the confirmed cases variable was always accompanied with a missing deaths variable. Generally speaking, most countries with missing values are either countries with very small populations or are special cases such as Taiwan or North Korea. I assume this data is MAR since it seems like the missing values are mostly explained by something observed in the data (population). Unfortunately, MICE imputation does not work due to singular values occurring during imputation, even when experimenting with taking out certain problematic columns. In addition, most of the missing data comes in the response variables of confirmed cases and deaths anyway, and imputing response variables does not make much sense. As a result, I will drop these 7 observations with missing values. 
+
+In addition, I will drop 8 additional observations that have values of 0 for deaths. This is because I think that it is unfeasible to have 0 deaths from COVID-19 by February 2021, and also because beta regression models must have response variables between 0 and 1 non-inclusive. I will keep in mind that dropping these 15 total observations will bias the results. 
 
 ```{r}
-model <- lm(Deaths~ Animal_no_seafood_fat+ Fish..Seafood_fat + Vegetal_no_oil_fat + Vegetable.Oils_fat + Animal_no_seafood_protein+ Fish..Seafood_protein + Vegetal_no_oil_protein + Vegetable.Oils_protein + Alcoholic.Beverages + Animal.fats  + Cereals...Excluding.Beer + Eggs + Fish..Seafood + Meat +  Fruits...Excluding.Wine + Milk...Excluding.Butter + Miscellaneous + Offals + Oilcrops + Pulses + Spices + Starchy.Roots + Stimulants + Sugar...Sweeteners + Treenuts + Vegetable.Oils + Vegetables + Obesity + Population, data = merged)
+merged_modeling <- merged_final %>% 
+  mutate(Deaths = Deaths/100) %>% 
+  mutate(Confirmed = Confirmed/100)
 
-summary(model)
+nrow(merged_modeling)
+merged_modeling <- merged_modeling %>% 
+  filter(Deaths>0 & Deaths<1)
+nrow(merged_modeling)
+
+
+model1 <- betareg(Deaths~ Animal_no_seafood_fat+ Fish..Seafood_fat + Vegetal_no_oil_fat + Vegetable.Oils_fat + Animal_no_seafood_protein+ Fish..Seafood_protein + Vegetal_no_oil_protein + Vegetable.Oils_protein + Alcoholic.Beverages + Animal.fats  + Cereals...Excluding.Beer + Eggs + Fish..Seafood + Meat +  Fruits...Excluding.Wine + Milk...Excluding.Butter + Miscellaneous + Offals + Oilcrops + Pulses + Spices + Starchy.Roots + Stimulants + Sugar...Sweeteners + Treenuts + Vegetable.Oils + Vegetables + Obesity + GDP_per_cap + Population, data = merged_modeling)
+summary(model1)
+
+
+
+
+
 ```
+```{r}
+model2 <- betareg(Confirmed~ Animal_no_seafood_fat+ Fish..Seafood_fat + Vegetal_no_oil_fat + Vegetable.Oils_fat + Animal_no_seafood_protein+ Fish..Seafood_protein + Vegetal_no_oil_protein + Vegetable.Oils_protein + Alcoholic.Beverages + Animal.fats  + Cereals...Excluding.Beer + Eggs + Fish..Seafood + Meat +  Fruits...Excluding.Wine + Milk...Excluding.Butter + Miscellaneous + Offals + Oilcrops + Pulses + Spices + Starchy.Roots + Stimulants + Sugar...Sweeteners + Treenuts + Vegetable.Oils + Vegetables + Obesity + GDP_per_cap + Population, data = merged_modeling)
+summary(model2)
+```
+```{r}
+model3 <- betareg(Deaths~ Obesity, data = merged_modeling)
+summary(model3)
+```
+
+
+The first model has death rates as the response variable, and the second model has confirmed case rates as the response. Otherwise, the formulations are the same.  Some of the main parts of diet I was focused on was the percentage of total diet (in kcal) taken up by animal fats, fruits, and vegetables. For percentage of total diet taken up by animal fats, the coefficient from the model was 0.179. This means that holding other predictors constant, for every one unit increase in percentage animal fats take up of a country's diet, we expect to see a 0.179 increase in the logit of the deaths due to COVID-19 in that country as a proportion of total population with a 95% confidence interval of [1.269, -0.911]. Holding all other predictors constant, for every one unit increase in percentage of a country's total diet taken up by fruits, we expect to see a 0.295 increase in the logit of death rate with a 95% confidence interval of [1.389, -0.799]. Holding all other predictors constant, for every one unit increase in the percentage of a country's total diet taken up by vegetables, we expect to see a 0.190 increase in the logit of death rate with a 95% confidence interval from [1.298, -0.918]. 
+
+For the second model modeling confirmed cases as a proportion of population, 
+
+
+
+
+
+
 
