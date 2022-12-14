@@ -13,8 +13,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load-packages, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(betareg)
-
+library(broom)
+library(kableExtra)
 ```
+
+QUESTIONS:
+
+Fat and protein variables are larger numbers?
+How does the model formula look?
+Diagnostic plot linearity?
 
 ## Introduction
 
@@ -165,19 +172,6 @@ merged_final["Yemen", "GDP_per_cap"] <- 690.76
 
 
 
-
-```{r, echo=FALSE, message=FALSE}
-# library(mice)
-# merged_test <- merged %>% 
-#   select(-c(Alcoholic.Beverages_fat, Aquatic.Products..Other_fat, Sugar.Crops_fat, Sugar...Sweeteners_fat, Aquatic.Products..Other_food_kg, Sugar.Crops_food_kg, Aquatic.Products..Other_protein, Sugar.Crops_protein, Sugar...Sweeteners_protein, Aquatic.Products..Other, Sugar.Crops, Unit..all.except.Population., Obesity))
-
-
-# 
-# imputed_Data <- mice(merged, m=5, maxit = 50, method = 'pmm', seed = 500)
-# summary(imputed_Data)
-  
-```
-
 ### Model formulation/selection
 
 We decided to concentrate on two response variables in particular, rates of COVID-19 related deaths and confirmed cases. We will fit two models, one for each response variable. We are mostly interested in the relationship between each of the four predictor variables vegetable, fruit, meat, and animal fat consumption as a percentage of total food consumed (in kcal) and the response variables. These variables will go into my model. We also decided to control for the consumption of other dietary food groups as a percentage of total food consumed (in kcal). As a result, we also added variables for alcoholic beverages, cereals (wheat, rice, and other grain products), eggs, fish and seafood, milk, offals, oilcrops (including coconuts, peanuts, rapeseed, mustardseed, sunflower seeds, soybeans, etc.), pulses (legumes), spices, starchy root vegetables, spices, stimulants (including coffee, tea, and cacao products), tree nuts, vegetable oils, sugar and sweeteners, and finally miscellaneous, all representing percentage of total food consumed in kcal in order to control for these effects. 
@@ -186,7 +180,14 @@ In addition, given that there was data available for the percentage of total pro
 
 We also added in variables for obesity rate and population to control for these factors as well. We decided to not to include undernourished rate. This was because the data for undernourished rate was recorded in a strange way where anything under 2.5% was recorded in the same way. We did not see a principled way to create numerical values for this data, and using another source of data was not feasible because we were not sure exactly where and how the undernourished rate was defined in the original data set. As a result, we decided to omit the undernourished rate from the model. Lastly, from a quick initial survey, it seems that how affluent a country is may effect COVID-19 case rates, deaths, etc. As a result, we downloaded the 2020 GDP per capita for all countries, and merged it into my dataset using the country name. We went through and cleaned it up and hand inputted a few data points due to certain countries being named slightly differently.
 
-Model formula here eventually. 
+let $PropF\;X=$ proportion of a country's fat consumption coming from food X, and $PropP\;X =$ proportion of a country's protein consumption coming from food X, and $PropT\;X =$ proportion of a country's total food consumption in kcal coming from food X.  
+
+
+let $p_i = Death\;Rate_i| PropF\;Animals_i, PropF\;Seafood_i, PropF\;Vegetal\;Products_i, PropF\;Vegetable\;OilsF,\\ PropP\;Animals_i, PropP\;Seafood_i, PropP\;Vegetal\;Products_i,\\ PropP\;Vegetable\;Oils_i, PropT\;Alcohol_i, PropT\;Animal\;Fats_i,\\ PropT\;Cereals_i, PropT\;Eggs_i, PropT\;Seafood_i,\\ PropT\;Meat_i, PropT\;Fruits_i, PropT\;Milk_i, PropT\;Miscellaneous_i,\\ PropT\;Offals_i, PropT\;Oilcrops_i, PropT\;Pulses_i, PropT\;Spices_i,\\ PropT\;Starchy\;Roots_i, PropT\;Stimulants_i, PropT\;Sugar\;and\;Sweeteners_i,\\ PropT\;Treenuts_i, PropT\;Vegetable\;Oils_i, PropT\;Vegetables_i,\\ Obesity_i, GDP\;Per\;Capita_i, Population_i$
+
+$log(p_i/1-p_i) = \beta_0 + \beta_1PropF\;Animals_i + \beta_2PropF\;Seafood_i + \beta_3PropF\;Vegetal\;Products_i + \beta_4PropF\;Vegetable\;OilsF + \beta_5PropP\;Animals_i + \beta_6PropP\;Seafood_i + \beta_7PropP\;Vegetal\;Products_i + \beta_8PropP\;Vegetable\;Oils_i + \beta_9PropT\;Alcohol_i + \beta_{10}PropT\;Animal\;Fats_i + \beta_{11}PropT\;Cereals_i + \beta_{12}PropT\;Eggs_i + \beta_{13}PropT\;Seafood_i + \beta_{14}PropT\;Meat_i + \beta_{15}PropT\;Fruits_i + \beta_{16}PropT\;Milk_i + \beta_{17}PropT\;Miscellaneous_i + \beta_{18}PropT\;Offals_i + \beta_{19}PropT\;Oilcrops_i + \beta_{20}PropT\;Pulses_i + \beta_{21}PropT\;Spices_i + \beta_{22}PropT\;Starchy\;Roots_i + \beta_{23}PropT\;Stimulants_i + \beta_{24}PropT\;Sugar\;and\;Sweeteners_i + \beta_{25}PropT\;Treenuts_i + \beta_{26}PropT\;Vegetable\;Oils_i + \beta_{27}PropT\;Vegetables_i + \beta_{28}Obesity_i + \beta_{29}GDP\;Per\;Capita_i + \beta_{30}Population_i$ 
+
+The second model with confirmed COVID_19 case rate as the response has the same formulation, except replacing $Death\;Rate_i$ with $Confirmed\;Case\;Rate_i$
 
 ### Missing Data
 
@@ -215,7 +216,7 @@ One assumption necessary is the independence of observations. This assumption ma
 
 Diagnostic plots not working due to singular values occurring. Using the plot function, first two plots are outputted, after that it breaks due to singular values. Is something like the below plot good for checking linearity?
 
-logit(p) = b_0+b_1X
+
 ```{r, echo=FALSE, message=FALSE}
 plot(merged_modeling$Deaths, predict(model1), xlab = "True death rate (log scale)", ylab = "Predicted death rate (log scale)", xlim=c(0.000001,.01),ylim=c(0.000001,.01), log = "xy", asp=1)
 abline(a=0, b=1)
@@ -228,9 +229,9 @@ plot(merged_modeling$Vegetables, log(p/(1-p)))
 
 ## Results
 
-The first model has death rates as the response variable, and the second model has confirmed case rates as the response. Otherwise, the formulations are the same.  Some of the main parts of diet we were focused on was the percentage of total diet (in kcal) taken up by animal fats, fruits, and vegetables. For percentage of total diet taken up by animal fats, the coefficient from the model was 0.179. This means that holding other predictors constant, for every one unit increase in percentage animal fats take up of a country's diet, we expect to see a 0.179 increase in the logit of the deaths due to COVID-19 in that country as a proportion of total population with a 95% confidence interval of [`r 0.179-1.96*1.09`, `r 0.179+1.96*1.09`]. Holding all other predictors constant, for every one unit increase in percentage of a country's total diet taken up by fruits, we expect to see a 0.295 increase in the logit of death rate with a 95% confidence interval of [`r 0.295-1.96*1.094`, `r 0.295+1.96*1.094`]. Holding all other predictors constant, for every one unit increase in the percentage of a country's total diet taken up by vegetables, we expect to see a 0.190 increase in the logit of death rate with a 95% confidence interval from [`r 0.190-1.96*1.108`, `r 0.190+1.96*1.108`]. 
+The first model has death rates as the response variable, and the second model has confirmed case rates as the response. Otherwise, the formulations are the same.  Some of the main parts of diet we were focused on was the percentage of total diet (in kcal) taken up by animal fats, fruits, and vegetables. For percentage of total diet taken up by animal fats, the coefficient from the model was 0.18. This means that holding other predictors constant, for every one unit increase in percentage animal fats take up of a country's diet, we expect to see a 0.18 increase in the logit of the deaths due to COVID-19 in that country as a proportion of total population with a 95% confidence interval of [-1.96, 2.32]. Holding all other predictors constant, for every one unit increase in percentage of a country's total diet taken up by fruits, we expect to see a 0.29 increase in the logit of death rate with a 95% confidence interval of [-1.85, 2.44]. Holding all other predictors constant, for every one unit increase in the percentage of a country's total diet taken up by vegetables, we expect to see a 0.19 increase in the logit of death rate with a 95% confidence interval from [-1.98, 2.36]. 
 
-For the second model modeling confirmed cases as a proportion of population, holding all other predictors constant, for every one unit increase in the percentage of a country's diet taken up by animal fats (in kcal), we expect to see a 0.307 increase in the logit of confirmed cases as a proportion of total population, with a 95% confidence interval of [`r 0.301-1.96*1.065`, `r 0.301+1.96*1.065`]. For every one unit increase in the percentage of a country's diet taken up by fruit, we expect to see a 0.461 increase in the logit of rate of confirmed cases holding all other predictors constant, with a 95% confidence interval of [`r 0.461-1.96*1.068`, `r 0.461+1.96*1.068`]. Lastly, for every one unit increase in percentage of a country's diet taken up by vegetables, we expect to see a 0.410 increase in the logit of rate of confirmed cases holding all other predictors constant, with a 95% confidence interval of [`r 0.410-1.96*1.080`, `r 0.410+1.96*1.080`]. 
+For the second model modeling confirmed cases as a proportion of population, holding all other predictors constant, for every one unit increase in the percentage of a country's diet taken up by animal fats (in kcal), we expect to see a 0.31 increase in the logit of confirmed cases as a proportion of total population, with a 95% confidence interval of [-1.78, 2.48]. For every one unit increase in the percentage of a country's diet taken up by fruit, we expect to see a 0.46 increase in the logit of rate of confirmed cases holding all other predictors constant, with a 95% confidence interval of [-1.63, 2.55]. Lastly, for every one unit increase in percentage of a country's diet taken up by vegetables, we expect to see a 0.41 increase in the logit of rate of confirmed cases holding all other predictors constant, with a 95% confidence interval of [-1.71, 2.53]. 
 
 Curiously, for both models, at a significance level of 0.05, no predictors in either model are significant given the current model formulations. 
 
@@ -242,41 +243,52 @@ One limitation is the missing data. Dropping missing values and unfeasible value
 
 Another limitation is a the issue of countries not being independent observations. It might be possible to add random effects to the model to cope with the independence violations. With further research with groupings of countries can be formed based on a combination of geography, cultural boundaries, and other factors to be introduced as random effects.
 
+Lastly, the data itself presents a limitation. The data provides diet information and COVID-19 rates by country. Diet and COVID-19 cases happen on an individual level, and are aggregated at the country level for this dataset, and the analysis itself is therefore done on a country level. For examining potential associations between diet and COVID-19 rates, it may be better to have a dataset on the individual level, where each observation is a person, with predictor variables pertaining to diet and response variables that are Bernoulli variables indicating whether or not the person got COVID-19, if they died or had severe illness from it, etc. 
+
 Overall, no significant associations between diet and COVID-19 death rates were found given the current model formulation. Given that dietary choices have been shown to be associated with rates of influenza, it might be worth further investigating this topic, especially given the large impact that COVID-19 has on people's lives and the disruptive influence on public health systems worldwide. Further research may be conducted with different model formulations or acquiring more information to inform the model. However, digging deeper into this topic, a pivot might be in order to first examine the relationship between the breakdown of each country's diet and rates of obesity, in order to determine whether or not it is appropriate to control for obesity in the model. 
 
 ## Appendix
-Will make this output better
+
 
 ```{r, echo=FALSE, message=FALSE}
-# fullmodel <- data.frame(tidy(aft, conf.int = TRUE, conf.level = .95)) %>%
-#   mutate(`p.value` = ifelse(p.value<0.001, "<0.001", round(p.value, digits = 3))) %>%
-#   rename("Term" = "term", "Estimate" = "estimate", "Standard Error" = "std.error", "Statistic" = "statistic", "P-Value" = "p.value", "95% CI Lower" = "conf.low", "95% CI Upper" = "conf.high") %>%
-#   mutate(Estimate = round(Estimate, digits = 3),
-#          `Standard Error` = round(`Standard Error`, digits = 3),
-#          Statistic = round(Statistic, digits = 3),
-#          `95% CI Lower` = round(`95% CI Lower`, digits = 3),
-#          `95% CI Upper` = round(`95% CI Upper`, digits = 3)) %>%
-#   filter(Term != "Log(scale)")
-# fullmodel$Term <- c("Intercept", "Days from First Cath",
-#                          "Number of Prev Caths", "Age 25-29",
-#                          "Age 30-34", "Age 35-39", "Age 40-44",
-#                          "Age 45-49", "Age 50-54", "Age 55-59",
-#                          "Age 60-64", "Age 65-69", "Age 70-74",
-#                          "Age 75-79", "Age 80+", "Sex: male",
-#                          "No ACS", "ACS: Non-STEMI", "ACS: STEMI",
-#                          "ACS: Unstable Angina", "Angina: Detected",
-#                          "Cerebrovascular Disease", "CHF",
-#                          "COPD", "Diabetes",
-#                          "Hypertension", "Hyperlipidemia",
-#                          "Smoker", "# Infarctions",
-#                          "Diastolic Blood Pressure",
-#                          "Pulse", "Systolic Blood Pressure",
-#                          "Carotid Bruits: Detected", "BMI",
-#                          "S3: Detected")
-# fullmodel %>%
-#   kable(format = "markdown", digits = 3, caption = "Full AFT model for days until severe medical event")
-summary(model1)
+fullmodel <- data.frame(tidy(model1, conf.int = TRUE, conf.level = .95)) %>%
+  mutate(`p.value` = ifelse(p.value<0.01, "<0.01", round(p.value, digits = 2))) %>%
+  rename("Term" = "term", "Estimate" = "estimate", "Standard Error" = "std.error", "Statistic" = "statistic", "P-Value" = "p.value", "95% CI Lower" = "conf.low", "95% CI Upper" = "conf.high") %>%
+  mutate(Estimate = round(Estimate, digits = 2),
+         `Standard Error` = round(`Standard Error`, digits = 2),
+         Statistic = round(Statistic, digits = 2),
+         `95% CI Lower` = round(`95% CI Lower`, digits = 2),
+         `95% CI Upper` = round(`95% CI Upper`, digits = 2)) %>%
+  filter(Term != "(phi)") %>% 
+  select(-c(component))
+fullmodel$Term <- c("Intercept", "Proportion of fat consumption from Animals", "Proportion of fat consumption from Seafood","Proportion of fat consumption from Vegetal Products",  "Proportion of fat consumption from Vegetable Oils","Proportion of protein consumption from Animals", "Proportion of protein consumption from Seafood", "Proportion of protein consumption from Vegetal Products", "Proportion of protein consumption from Vegetable Oils","Proportion of total consumption from Alcohol","Proportion of total consumption from Animal Fats","Proportion of total consumption from Cereals","Proportion of total consumption from Eggs","Proportion of total consumption from Seafood","Proportion of total consumption from Meat","Proportion of total consumption from Fruits","Proportion of total consumption from Milk","Proportion of total consumption from Miscellaneous","Proportion of total consumption from Offals","Proportion of total consumption from Oilcrops","Proportion of total consumption from Pulses","Proportion of total consumption from Spices","Proportion of total consumption from Starchy Roots","Proportion of total consumption from Stimulants","Proportion of total consumption from Sugar/Sweeteners","Proportion of total consumption from Treenuts","Proportion of total consumption from Vegetable Oils","Proportion of total consumption from Vegetables", "Obesity", "GDP per capita","Population" )
+fullmodel %>%
+  kable(format = "markdown", digits = 2, caption = "Death Rate Model")
+
 ```
+```{r, echo=FALSE, message=FALSE}
+fullmodel <- data.frame(tidy(model2, conf.int = TRUE, conf.level = .95)) %>%
+  mutate(`p.value` = ifelse(p.value<0.01, "<0.01", round(p.value, digits = 2))) %>%
+  rename("Term" = "term", "Estimate" = "estimate", "Standard Error" = "std.error", "Statistic" = "statistic", "P-Value" = "p.value", "95% CI Lower" = "conf.low", "95% CI Upper" = "conf.high") %>%
+  mutate(Estimate = round(Estimate, digits = 2),
+         `Standard Error` = round(`Standard Error`, digits = 2),
+         Statistic = round(Statistic, digits = 2),
+         `95% CI Lower` = round(`95% CI Lower`, digits = 2),
+         `95% CI Upper` = round(`95% CI Upper`, digits = 2)) %>%
+  filter(Term != "(phi)") %>% 
+  select(-c(component))
+fullmodel$Term <- c("Intercept", "Proportion of fat consumption from Animals", "Proportion of fat consumption from Seafood","Proportion of fat consumption from Vegetal Products",  "Proportion of fat consumption from Vegetable Oils","Proportion of protein consumption from Animals", "Proportion of protein consumption from Seafood", "Proportion of protein consumption from Vegetal Products", "Proportion of protein consumption from Vegetable Oils","Proportion of total consumption from Alcohol","Proportion of total consumption from Animal Fats","Proportion of total consumption from Cereals","Proportion of total consumption from Eggs","Proportion of total consumption from Seafood","Proportion of total consumption from Meat","Proportion of total consumption from Fruits","Proportion of total consumption from Milk","Proportion of total consumption from Miscellaneous","Proportion of total consumption from Offals","Proportion of total consumption from Oilcrops","Proportion of total consumption from Pulses","Proportion of total consumption from Spices","Proportion of total consumption from Starchy Roots","Proportion of total consumption from Stimulants","Proportion of total consumption from Sugar/Sweeteners","Proportion of total consumption from Treenuts","Proportion of total consumption from Vegetable Oils","Proportion of total consumption from Vegetables", "Obesity", "GDP per capita","Population" )
+fullmodel %>%
+  kable(format = "markdown", digits = 2, caption = "Confirmed Case Rate Model")
+
+```
+
+
+```{r}
+summary(model1)
+print(model1$coefficients)
+```
+
 ```{r, echo=FALSE, message=FALSE}
 summary(model2)
 ```
