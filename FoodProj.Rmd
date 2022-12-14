@@ -1,25 +1,19 @@
 ---
-title: "440-FinalProj"
-output: html_document
+title: "Associations Between Diet and COVID-19 Rates"
+author: "Alex Shen"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-https://www.kaggle.com/datasets/mariaren/covid19-healthy-diet-dataset?resource=download&select=Food_Supply_Quantity_kg_Data.csv
- 
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7306972/ 
 
-https://www.hsph.harvard.edu/nutritionsource/nutrition-and-immunity/
-
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7919160/
-
-https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/people-with-medical-conditions.html 
-
-https://www.cdc.gov/healthyweight/index.html
-```{r}
+```{r load-packages, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(betareg)
+
 ```
 
 ## Introduction
@@ -28,34 +22,33 @@ When the novel coronavirus (COVID-19) pandemic spread through the world in late 
 
 The pervasiveness of the disease begs the question whether or not individual behaviors and life choices can decrease one's risk of either contracting or dying from the disease. Obesity, for example, is associated with higher rates of severe illness from COVID-19 (https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/people-with-medical-conditions.html). While obesity is influenced by genetic and environmental factors, it can be controlled by lifestyle choices such as exercise and healthy eating. 
 
-On the topic of healthy eating, Harvard T.H. Chan School of Public Health says that a "balanced diet consisting of a range of vitamins and minerals, combined with healthy lifestyle factors... most effectively primes the body to fight infection and disease." As a result, I am interested in whether or not dietary choices can effect rates of contracting COVID-19 or rates of serious illness/death.
+On the topic of healthy eating, Harvard T.H. Chan School of Public Health says that a "balanced diet consisting of a range of vitamins and minerals, combined with healthy lifestyle factors... most effectively primes the body to fight infection and disease." As a result, we are interested in whether or not dietary choices can effect rates of contracting COVID-19 or rates of serious illness/death. 
 
-My data is called the COVID-19 Healthy Diet Dataset and comes from Kaggle courtesy of user Maria Ren, and was last updated the week of 02/06/2021, giving plenty of data from the COVID-19 pandemic to work with. There are 4 datasets provided, each of which contains information about a part of people's diet. One contains information about people's consumption of fat, another for protein, another for overall food intake (in kg), and another for overall food intake (in kcal). Each dataset has 170 rows (countries) and the same 32 columns. There is a column for country name and many different columns representing food groups that contain information about what percentage of people's diet (in the category defined by the dataset it comes from) that each food group takes up. For example, the animal fats column in the Fats dataset represents the percentage of a countries total fat intake that is comprised of animal fats. Meanwhile, the column animal fats in the Overall Food Intake (kg) dataset will represent the percentage of countries total food intake in kg that is comprised of animal fats. In addition, there are columns (I will refer to these following columns as demographic/outcome information) for obesity rate, undernourished rate, confirmed COVID-19 case rate, COVID-19 death rate, active COVID-19 case rate, and total population. All of the rates are calculated as percentage of total population, for example, confirmed COVID-19 case rate in a country is the percent of people in that country that have COVID-19. The demographic/outcome information is identical for all 4 datasets. 
+The data is called the COVID-19 Healthy Diet Dataset and comes from Kaggle courtesy of user Maria Ren, and was last updated the week of 02/06/2021, giving plenty of data from the COVID-19 pandemic to work with. There are 4 datasets provided, each of which contains information about a part of people's diet. One contains information about people's consumption of fat, another for protein, another for overall food intake (in kg), and another for overall food intake (in kcal). Each dataset has 170 rows (countries) and the same 32 columns. There is a column for country name and many different columns representing food groups that contain information about what percentage of people's diet (in the category defined by the dataset it comes from) that each food group takes up. For example, the animal fats column in the Fats dataset represents the percentage of a countries total fat intake that is comprised of animal fats. Meanwhile, the column animal fats in the Overall Food Intake (kg) dataset will represent the percentage of countries total food intake in kg that is comprised of animal fats. In addition, there are columns (we will refer to these following columns as demographic/outcome information) for obesity rate, undernourished rate, confirmed COVID-19 case rate, COVID-19 death rate, active COVID-19 case rate, and total population. All of the rates are calculated as percentage of total population, for example, confirmed COVID-19 case rate in a country is the percent of people in that country that have COVID-19. The demographic/outcome information is identical for all 4 datasets. 
 
-The 4 datasets were combined by joining them together on the country field (all the countries in the 4 sets are the same), and deleting the duplicate demographic/outcome information.
-
-
-
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8954090/
+The 4 datasets were combined by joining them together on the country field (all the countries in the 4 sets are the same), and deleting the duplicate demographic/outcome information. My overall research question will be to examine any associations between the different proportions certain food groups take up of people's diet and COVID-19 rates on a country level. 
 
 
 
-```{r}
+
+
+
+```{r, echo=FALSE, message=FALSE}
 fat <- read.csv("Fat_Supply_Quantity_Data.csv")
 food_kg <- read.csv("Food_Supply_Quantity_kg_Data.csv")
 food_cal <- read.csv("Food_Supply_kcal_Data.csv")
 protein <- read.csv("Protein_Supply_Quantity_Data.csv")
 GDP <- read.csv("GDP_Per_Capita.csv")
 ```
-```{r}
+
+```{r, echo=FALSE, message=FALSE}
 GDP <- GDP %>% 
-  mutate(Country = ï..Country.Name) %>% 
+  mutate(Country = Country.Name) %>% 
   mutate(GDP_per_cap = X2020) %>% 
   select(Country, GDP_per_cap)
-GDP
 ```
 
-```{r}
+```{r, echo=FALSE, message=FALSE}
 
 fat <- fat %>% 
   select(-c(Obesity, Undernourished, Confirmed, Deaths, Recovered, Active, Population, Unit..all.except.Population.))
@@ -87,7 +80,6 @@ merged <- merge(merged, protein, by = "Country", all = TRUE)
 
 merged <- merge(merged, food_cal, by = "Country", all = TRUE)
 
-print(merged)
 
 merged <- merged %>%
   mutate(Animal_no_seafood_fat = Animal.Products_fat - Fish..Seafood_fat) %>%
@@ -96,40 +88,37 @@ merged <- merged %>%
   mutate(Vegetal_no_oil_protein = Vegetal.Products_protein - Vegetable.Oils_protein)
 
 
-print(merged$Undernourished)
-
 
 ```
 
 ### EDA
 
-```{r}
-ggplot(data = merged, aes(x = Animal.Products_fat, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="black", high="yellow") + labs()
+Will make the plots smaller later. 
 
-ggplot(data = merged, aes(x = Animal.fats, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="black", high="yellow") + labs()
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = merged, aes(x = Vegetables, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="blue", high="red") + labs(x = "Vegetable consumption % of total diet", y = "COVID-19 Death Rate", title = "Vegetable Consumption vs Death Rate")  + scale_y_log10(limits = c(.000000001, .25))
+ggplot(data = merged, aes(x = Animal.fats, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="blue", high="red") + labs(x = "Animal Fats consumption % of total diet", y = "COVID-19 Death Rate", title = "Animal Fats Consumption vs Death Rate")+ scale_y_log10() 
 
-ggplot(data = merged, aes(x = Fruits...Excluding.Wine, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="black", high="yellow") + labs()
+ggplot(data = merged, aes(x = Fruits...Excluding.Wine, y = Deaths, color = Obesity)) + geom_point() + scale_color_gradient(low="blue", high="red") + labs(x = "Fruits consumption % of total diet", y = "COVID-19 Death Rate", title = "Fruits Consumption vs Death Rate")+ scale_y_log10() 
 ```
+In these 3 plots, we have the percentage of each country's diet taken up by vegetables, animal fats, and fruit respectively on the x axes, and the rate of death from COVID-19 on the y axis. The darker the points, the lower the obesity rate is in the nation. The lighter and more yellow the points, the higher the obesity rate. From all 3 graphs, we can generally see that high death rates are associated with a higher rate of obesity, which makes sense. 
+
+For the vegetable graph, it is hard to make any discerning observations without stretching the imagination. From the animal fats graph, we can see that generally, countries with higher consumption of animal fats tend to be be ones with higher death rates. For the fruits graph, it seems that most countries with high death rates are clustered around 2.25% of their diet being fruits. 
 
 ## Methodology
 
-```{r}
-merged %>% 
-  filter_all(any_vars(is.na(.))) %>% 
-  select(Country, Obesity, Undernourished, Confirmed, Deaths, Recovered, Active)
+```{r, echo=FALSE, message=FALSE}
 ##Canada 45954
 ##Chile 9622
 rownames(merged) <- merged$Country
 CanadaActive <- 45954/merged["Canada",]$Population
 ChileActive <- 9622/merged["Chile",]$Population
-print(CanadaActive)
-print(ChileActive)
 merged["Canada", "Active"]<- CanadaActive
 merged["Chile", "Active"] <- ChileActive
 
-merged %>% 
-  filter(Active==0|Confirmed==0|Deaths==0) %>% 
-  select(Country, Active, Confirmed, Deaths)
+# merged %>% 
+#   filter(Active==0|Confirmed==0|Deaths==0) %>% 
+#   select(Country, Active, Confirmed, Deaths)
 
 
 merged <- merged %>% 
@@ -138,12 +127,12 @@ merged <- merged %>%
 merged_nas <- merged %>% 
   filter_all(any_vars(is.na(.)))
 merged <- setdiff(merged, merged_nas)
-merged
+
 ```
-```{r}
+
+```{r, echo=FALSE, message=FALSE}
 merged_final <- merge(merged, GDP, all.x=TRUE)
-merged_final %>% 
-  select(GDP_per_cap)
+
 rownames(merged_final) <- merged_final$Country
 
 merged_final["Bahamas", "GDP_per_cap"]<- 24665.10
@@ -167,17 +156,17 @@ merged_final["Yemen", "GDP_per_cap"] <- 690.76
   
   
   
-merged_final %>% 
-  filter_all(any_vars(is.na(.))) %>% 
-  select(Country, GDP_per_cap)
-merged_final %>% 
-  select(GDP_per_cap)
+# merged_final %>% 
+#   filter_all(any_vars(is.na(.))) %>% 
+#   select(Country, GDP_per_cap)
+# merged_final %>% 
+#   select(GDP_per_cap)
 ```
 
 
 
 
-```{r}
+```{r, echo=FALSE, message=FALSE}
 # library(mice)
 # merged_test <- merged %>% 
 #   select(-c(Alcoholic.Beverages_fat, Aquatic.Products..Other_fat, Sugar.Crops_fat, Sugar...Sweeteners_fat, Aquatic.Products..Other_food_kg, Sugar.Crops_food_kg, Aquatic.Products..Other_protein, Sugar.Crops_protein, Sugar...Sweeteners_protein, Aquatic.Products..Other, Sugar.Crops, Unit..all.except.Population., Obesity))
@@ -191,55 +180,121 @@ merged_final %>%
 
 ### Model formulation/selection
 
-I decided to concentrate on two response variables in particular, rates of COVID-19 related deaths and confirmed cases. I will fit two models, one for each response variable. I am mostly interested in the relationship between each of the four predictor variables vegetable, fruit, meat, and animal fat consumption as a percentage of total food consumed (in kcal) and the response variables. These variables will go into my model. I also decided to control for the consumption of other dietary food groups as a percentage of total food consumed (in kcal). As a result, I also added variables for alcoholic beverages, cereals (wheat, rice, and other grain products), eggs, fish and seafood, milk, offals, oilcrops (including coconuts, peanuts, rapeseed, mustardseed, sunflower seeds, soybeans, etc.), pulses (legumes), spices, starchy root vegetables, spices, stimulants (including coffee, tea, and cacao products), tree nuts, vegetable oils, sugar and sweeteners, and finally miscellaneous, all representing percentage of total food consumed in kcal in order to control for these effects. 
+We decided to concentrate on two response variables in particular, rates of COVID-19 related deaths and confirmed cases. We will fit two models, one for each response variable. We are mostly interested in the relationship between each of the four predictor variables vegetable, fruit, meat, and animal fat consumption as a percentage of total food consumed (in kcal) and the response variables. These variables will go into my model. We also decided to control for the consumption of other dietary food groups as a percentage of total food consumed (in kcal). As a result, we also added variables for alcoholic beverages, cereals (wheat, rice, and other grain products), eggs, fish and seafood, milk, offals, oilcrops (including coconuts, peanuts, rapeseed, mustardseed, sunflower seeds, soybeans, etc.), pulses (legumes), spices, starchy root vegetables, spices, stimulants (including coffee, tea, and cacao products), tree nuts, vegetable oils, sugar and sweeteners, and finally miscellaneous, all representing percentage of total food consumed in kcal in order to control for these effects. 
 
-In addition, given that there was data available for the percentage of total protein and fats each of the food groups took up, I decided to also control for these. However, in the interest of being parsimonious, I used variables representing larger food groups to control for them. I added in variables for percentage of total fat intake from animal products (not including seafood), seafood, vegetal products (any plant related products not including oils), and vegetable oils. Similar variables were added to the model but instead of fat, they measured percentage of total protein intake. 
+In addition, given that there was data available for the percentage of total protein and fats each of the food groups took up, we decided to also control for these. However, in the interest of being parsimonious, we used variables representing larger food groups to control for them. We added in variables for percentage of total fat intake from animal products (not including seafood), seafood, vegetal products (any plant related products not including oils), and vegetable oils. Similar variables were added to the model but instead of fat, they measured percentage of total protein intake. 
 
-I also added in variables for obesity rate and population to control for these factors as well. I decided to not to include undernourished rate. This was because the data for undernourished rate was recorded in a strange way where anything under 2.5% was recorded in the same way. I did not see a principled way to create numerical values for this data, and using another source of data was not feasible because I was not sure exactly where and how the undernourished rate was defined in the original data set. As a result, I decided to omit the undernourished rate from the model. Lastly, from a quick initial survey, it seems that how affluent a country is may effect COVID-19 case rates, deaths, etc. As a result, I downloaded the 2020 GDP per capita for all countries, and merged it into my dataset using the country name. I went through and cleaned it up and hand inputted a few data points due to certain countries being named slightly differently. 
+We also added in variables for obesity rate and population to control for these factors as well. We decided to not to include undernourished rate. This was because the data for undernourished rate was recorded in a strange way where anything under 2.5% was recorded in the same way. We did not see a principled way to create numerical values for this data, and using another source of data was not feasible because we were not sure exactly where and how the undernourished rate was defined in the original data set. As a result, we decided to omit the undernourished rate from the model. Lastly, from a quick initial survey, it seems that how affluent a country is may effect COVID-19 case rates, deaths, etc. As a result, we downloaded the 2020 GDP per capita for all countries, and merged it into my dataset using the country name. We went through and cleaned it up and hand inputted a few data points due to certain countries being named slightly differently.
+
+Model formula here eventually. 
 
 ### Missing Data
 
 
-After subsetting the data for only predictors we are interested in, 7 of the 170 countries in the dataset contain missing values. All missing values occur in either the variables for rates of obesity,  confirmed cases and deaths. Missing data for a country in the confirmed cases variable was always accompanied with a missing deaths variable. Generally speaking, most countries with missing values are either countries with very small populations or are special cases such as Taiwan or North Korea. I assume this data is MAR since it seems like the missing values are mostly explained by something observed in the data (population). Unfortunately, MICE imputation does not work due to singular values occurring during imputation, even when experimenting with taking out certain problematic columns. In addition, most of the missing data comes in the response variables of confirmed cases and deaths anyway, and imputing response variables does not make much sense. As a result, I will drop these 7 observations with missing values. 
+After subsetting the data for only predictors we are interested in, 7 of the 170 countries in the dataset contain missing values. All missing values occur in either the variables for rates of obesity,  confirmed cases and deaths. Missing data for a country in the confirmed cases variable was always accompanied with a missing deaths variable. Generally speaking, most countries with missing values are either countries with very small populations or are special cases such as Taiwan or North Korea. We assume this data is MAR since it seems like the missing values are mostly explained by something observed in the data (population). Most of the missing data comes in the response variables of confirmed cases and deaths, and imputing response variables does not make much sense. As a result, we will drop these 7 observations with missing values and perform a complete case analysis.
 
-In addition, I will drop 8 additional observations that have values of 0 for deaths. This is because I think that it is unfeasible to have 0 deaths from COVID-19 by February 2021, and also because beta regression models must have response variables between 0 and 1 non-inclusive. I will keep in mind that dropping these 15 total observations will bias the results. 
+In addition, we will drop 8 additional observations that have values of 0 for deaths. This is because we think that it is unfeasible to have 0 deaths from COVID-19 by February 2021, and also because beta regression models must have response variables between 0 and 1 non-inclusive. We will keep in mind that dropping these 15 total observations will bias the results. 
 
-```{r}
+```{r, echo=FALSE, message=FALSE}
 merged_modeling <- merged_final %>% 
   mutate(Deaths = Deaths/100) %>% 
   mutate(Confirmed = Confirmed/100)
 
-nrow(merged_modeling)
 merged_modeling <- merged_modeling %>% 
   filter(Deaths>0 & Deaths<1)
-nrow(merged_modeling)
-
 
 model1 <- betareg(Deaths~ Animal_no_seafood_fat+ Fish..Seafood_fat + Vegetal_no_oil_fat + Vegetable.Oils_fat + Animal_no_seafood_protein+ Fish..Seafood_protein + Vegetal_no_oil_protein + Vegetable.Oils_protein + Alcoholic.Beverages + Animal.fats  + Cereals...Excluding.Beer + Eggs + Fish..Seafood + Meat +  Fruits...Excluding.Wine + Milk...Excluding.Butter + Miscellaneous + Offals + Oilcrops + Pulses + Spices + Starchy.Roots + Stimulants + Sugar...Sweeteners + Treenuts + Vegetable.Oils + Vegetables + Obesity + GDP_per_cap + Population, data = merged_modeling)
-summary(model1)
-
-
-
-
 
 ```
-```{r}
+```{r, echo=FALSE, message=FALSE}
 model2 <- betareg(Confirmed~ Animal_no_seafood_fat+ Fish..Seafood_fat + Vegetal_no_oil_fat + Vegetable.Oils_fat + Animal_no_seafood_protein+ Fish..Seafood_protein + Vegetal_no_oil_protein + Vegetable.Oils_protein + Alcoholic.Beverages + Animal.fats  + Cereals...Excluding.Beer + Eggs + Fish..Seafood + Meat +  Fruits...Excluding.Wine + Milk...Excluding.Butter + Miscellaneous + Offals + Oilcrops + Pulses + Spices + Starchy.Roots + Stimulants + Sugar...Sweeteners + Treenuts + Vegetable.Oils + Vegetables + Obesity + GDP_per_cap + Population, data = merged_modeling)
+```
+
+### Model Diagnostics and Assumptions
+One assumption necessary is the independence of observations. This assumption may not be completely met. For example, bordering countries may often share similar diets due to similar cultures.  Having close geographical proximity may imply similar climate and habitablity for plant and species, leading to similar diets as well. Countries sharing borders may have more similar rates of COVID-19 as well due to more people (adjusted for population) moving between 2 bordering countries compared to 2 countries across the world. As a result, observations are not independent in this case, but we will proceed.
+
+Diagnostic plots not working due to singular values occurring. Using the plot function, first two plots are outputted, after that it breaks due to singular values. Is something like the below plot good for checking linearity?
+
+logit(p) = b_0+b_1X
+```{r, echo=FALSE, message=FALSE}
+plot(merged_modeling$Deaths, predict(model1), xlab = "True death rate (log scale)", ylab = "Predicted death rate (log scale)", xlim=c(0.000001,.01),ylim=c(0.000001,.01), log = "xy", asp=1)
+abline(a=0, b=1)
+
+
+p = merged_modeling$Deaths
+plot(merged_modeling$Vegetables, log(p/(1-p)))
+```
+
+
+## Results
+
+The first model has death rates as the response variable, and the second model has confirmed case rates as the response. Otherwise, the formulations are the same.  Some of the main parts of diet we were focused on was the percentage of total diet (in kcal) taken up by animal fats, fruits, and vegetables. For percentage of total diet taken up by animal fats, the coefficient from the model was 0.179. This means that holding other predictors constant, for every one unit increase in percentage animal fats take up of a country's diet, we expect to see a 0.179 increase in the logit of the deaths due to COVID-19 in that country as a proportion of total population with a 95% confidence interval of [`r 0.179-1.96*1.09`, `r 0.179+1.96*1.09`]. Holding all other predictors constant, for every one unit increase in percentage of a country's total diet taken up by fruits, we expect to see a 0.295 increase in the logit of death rate with a 95% confidence interval of [`r 0.295-1.96*1.094`, `r 0.295+1.96*1.094`]. Holding all other predictors constant, for every one unit increase in the percentage of a country's total diet taken up by vegetables, we expect to see a 0.190 increase in the logit of death rate with a 95% confidence interval from [`r 0.190-1.96*1.108`, `r 0.190+1.96*1.108`]. 
+
+For the second model modeling confirmed cases as a proportion of population, holding all other predictors constant, for every one unit increase in the percentage of a country's diet taken up by animal fats (in kcal), we expect to see a 0.307 increase in the logit of confirmed cases as a proportion of total population, with a 95% confidence interval of [`r 0.301-1.96*1.065`, `r 0.301+1.96*1.065`]. For every one unit increase in the percentage of a country's diet taken up by fruit, we expect to see a 0.461 increase in the logit of rate of confirmed cases holding all other predictors constant, with a 95% confidence interval of [`r 0.461-1.96*1.068`, `r 0.461+1.96*1.068`]. Lastly, for every one unit increase in percentage of a country's diet taken up by vegetables, we expect to see a 0.410 increase in the logit of rate of confirmed cases holding all other predictors constant, with a 95% confidence interval of [`r 0.410-1.96*1.080`, `r 0.410+1.96*1.080`]. 
+
+Curiously, for both models, at a significance level of 0.05, no predictors in either model are significant given the current model formulations. 
+
+## Discussion and Conclusions
+
+The fact that no predictors in either model were significant was really surprising because we expected to see at least a few significant predictors, even if they did not come in the variables of interest. For example, in both models we control for obesity. As stated in the introduction, obesity is a known risk factor for serious complications or death in COVID-19 cases. However, in the first model, we found that obesity was not a significant predictor for death. The reason for this may be due to the data we have on diet sharing some of the same explanatory power that obesity has, since information about a country's diet can presumably be associated with obesity rates. Removing the diet related information, we can see that obesity is a significant predictor for death. However, this does not extend in the other direction; removing obesity in both models does not change the fact that all predictors in both are not significant. 
+
+One limitation is the missing data. Dropping missing values and unfeasible values to conduct a complete case analysis causes bias in the resulting estimates and results. Imputation would have to be performed with some point imputation method, perhaps using something like KNN due to MICE not working. This would fail to capture variation in the data that MICE can do, but might be better than just dropping these values. 
+
+Another limitation is a the issue of countries not being independent observations. It might be possible to add random effects to the model to cope with the independence violations. With further research with groupings of countries can be formed based on a combination of geography, cultural boundaries, and other factors to be introduced as random effects.
+
+Overall, no significant associations between diet and COVID-19 death rates were found given the current model formulation. Given that dietary choices have been shown to be associated with rates of influenza, it might be worth further investigating this topic, especially given the large impact that COVID-19 has on people's lives and the disruptive influence on public health systems worldwide. Further research may be conducted with different model formulations or acquiring more information to inform the model. However, digging deeper into this topic, a pivot might be in order to first examine the relationship between the breakdown of each country's diet and rates of obesity, in order to determine whether or not it is appropriate to control for obesity in the model. 
+
+## Appendix
+Will make this output better
+
+```{r, echo=FALSE, message=FALSE}
+# fullmodel <- data.frame(tidy(aft, conf.int = TRUE, conf.level = .95)) %>%
+#   mutate(`p.value` = ifelse(p.value<0.001, "<0.001", round(p.value, digits = 3))) %>%
+#   rename("Term" = "term", "Estimate" = "estimate", "Standard Error" = "std.error", "Statistic" = "statistic", "P-Value" = "p.value", "95% CI Lower" = "conf.low", "95% CI Upper" = "conf.high") %>%
+#   mutate(Estimate = round(Estimate, digits = 3),
+#          `Standard Error` = round(`Standard Error`, digits = 3),
+#          Statistic = round(Statistic, digits = 3),
+#          `95% CI Lower` = round(`95% CI Lower`, digits = 3),
+#          `95% CI Upper` = round(`95% CI Upper`, digits = 3)) %>%
+#   filter(Term != "Log(scale)")
+# fullmodel$Term <- c("Intercept", "Days from First Cath",
+#                          "Number of Prev Caths", "Age 25-29",
+#                          "Age 30-34", "Age 35-39", "Age 40-44",
+#                          "Age 45-49", "Age 50-54", "Age 55-59",
+#                          "Age 60-64", "Age 65-69", "Age 70-74",
+#                          "Age 75-79", "Age 80+", "Sex: male",
+#                          "No ACS", "ACS: Non-STEMI", "ACS: STEMI",
+#                          "ACS: Unstable Angina", "Angina: Detected",
+#                          "Cerebrovascular Disease", "CHF",
+#                          "COPD", "Diabetes",
+#                          "Hypertension", "Hyperlipidemia",
+#                          "Smoker", "# Infarctions",
+#                          "Diastolic Blood Pressure",
+#                          "Pulse", "Systolic Blood Pressure",
+#                          "Carotid Bruits: Detected", "BMI",
+#                          "S3: Detected")
+# fullmodel %>%
+#   kable(format = "markdown", digits = 3, caption = "Full AFT model for days until severe medical event")
+summary(model1)
+```
+```{r, echo=FALSE, message=FALSE}
 summary(model2)
 ```
-```{r}
-model3 <- betareg(Deaths~ Obesity, data = merged_modeling)
-summary(model3)
-```
 
 
-The first model has death rates as the response variable, and the second model has confirmed case rates as the response. Otherwise, the formulations are the same.  Some of the main parts of diet I was focused on was the percentage of total diet (in kcal) taken up by animal fats, fruits, and vegetables. For percentage of total diet taken up by animal fats, the coefficient from the model was 0.179. This means that holding other predictors constant, for every one unit increase in percentage animal fats take up of a country's diet, we expect to see a 0.179 increase in the logit of the deaths due to COVID-19 in that country as a proportion of total population with a 95% confidence interval of [1.269, -0.911]. Holding all other predictors constant, for every one unit increase in percentage of a country's total diet taken up by fruits, we expect to see a 0.295 increase in the logit of death rate with a 95% confidence interval of [1.389, -0.799]. Holding all other predictors constant, for every one unit increase in the percentage of a country's total diet taken up by vegetables, we expect to see a 0.190 increase in the logit of death rate with a 95% confidence interval from [1.298, -0.918]. 
+## References
 
-For the second model modeling confirmed cases as a proportion of population, 
+https://www.kaggle.com/datasets/mariaren/covid19-healthy-diet-dataset?resource=download&select=Food_Supply_Quantity_kg_Data.csv
+ 
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7306972/ 
 
+https://www.hsph.harvard.edu/nutritionsource/nutrition-and-immunity/
 
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7919160/
 
+https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/people-with-medical-conditions.html 
 
+https://www.cdc.gov/healthyweight/index.html
 
-
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8954090/
 
