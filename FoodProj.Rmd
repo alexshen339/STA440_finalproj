@@ -184,6 +184,8 @@ let $PropT\;X =$ proportion of a country's total food consumption in kcal coming
 
 let $p_i = Death\;Rate_i| PropT\;Alcohol_i, PropT\;Animal\;Fats_i, PropT\;Cereals_i,\\ PropT\;Eggs_i, PropT\;Seafood_i, PropT\;Meat_i, PropT\;Fruits_i, PropT\;Milk_i,\\ PropT\;Miscellaneous_i, PropT\;Offals_i, PropT\;Oilcrops_i, PropT\;Pulses_i,\\ PropT\;Spices_i, PropT\;Starchy\;Roots_i, PropT\;Stimulants_i,\\ PropT\;Sugar\;and\;Sweeteners_i, PropT\;Treenuts_i, PropT\;Vegetable\;Oils_i,\\ PropT\;Vegetables_i, Obesity_i, GDP\;Per\;Capita_i, Population_i$
 
+where $p_i \sim Beta(\alpha,\beta)$
+
 $log(p_i/1-p_i) = \beta_0 + \beta_1PropT\;Alcohol_i + \beta_{2}PropT\;Animal\;Fats_i + \beta_{3}PropT\;Cereals_i + \beta_{4}PropT\;Eggs_i + \beta_{5}PropT\;Seafood_i + \beta_{6}PropT\;Meat_i + \beta_{7}PropT\;Fruits_i + \beta_{8}PropT\;Milk_i + \beta_{9}PropT\;Miscellaneous_i + \beta_{10}PropT\;Offals_i + \beta_{11}PropT\;Oilcrops_i + \beta_{12}PropT\;Pulses_i + \beta_{13}PropT\;Spices_i + \beta_{14}PropT\;Starchy\;Roots_i + \beta_{15}PropT\;Stimulants_i + \beta_{16}PropT\;Sugar\;and\;Sweeteners_i + \beta_{17}PropT\;Treenuts_i + \beta_{18}PropT\;Vegetable\;Oils_i + \beta_{19}PropT\;Vegetables_i + \beta_{20}Obesity_i + \beta_{21}GDP\;Per\;Capita_i + \beta_{22}Population_i$ 
 
 The second model with confirmed COVID_19 case rate as the response has the same formulation, except replacing $Death\;Rate_i$ with $Confirmed\;Case\;Rate_i$
